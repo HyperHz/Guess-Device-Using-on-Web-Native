@@ -1,4 +1,4 @@
-<div align="center">
+w<div align="center">
 
 # Device & Display Inspector
 ### Trình kiểm tra Thiết bị & Màn hình
@@ -13,6 +13,7 @@
 
 **100% client-side hardware, OS, browser, resolution & pixel density telemetry with transparent accuracy badges.**  
 *Công cụ kiểm tra thông số phần cứng, hệ điều hành, trình duyệt, độ phân giải & mật độ điểm ảnh 100% phía máy khách.*
+<br>Web demo Native: https://hyperhz.github.io/Guess-Device-Using-on-Web-Native/
 
 [English](#english) • [Tiếng Việt](#tiếng-việt)
 
