@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Device, Resolution &amp; DPI Inspector</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <!-- Hidden 1-inch CSS reference element for logical DPI measurement -->
+  <div id="css-inch-probe" class="css-inch-probe" aria-hidden="true"></div>
+
+  <header class="app-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title" data-i18n="appTitle">Device &amp; Display Inspector</h1>
+          <p class="app-subtitle" data-i18n="appSubtitle">Client-side hardware, browser, resolution &amp; pixel density telemetry</p>
+        </div>
+      </div>
+
+      <div class="header-actions" role="toolbar" aria-label="Report, language, and theme actions">
+        <button type="button" id="copy-json-btn" class="btn btn--secondary" aria-label="Copy all detected values as JSON">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span data-i18n="copyJson">Copy all as JSON</span>
+        </button>
+
+        <button type="button" id="download-json-btn" class="btn btn--primary" aria-label="Download JSON report file">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span data-i18n="downloadJson">Download report (.json)</span>
+        </button>
+
+        <button type="button" id="lang-toggle" class="btn btn--icon lang-toggle" aria-label="Switch language between English and Vietnamese">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span class="lang-opt is-active" data-lang-opt="en">EN</span>
+          <span class="lang-sep" aria-hidden="true">/</span>
+          <span class="lang-opt" data-lang-opt="vi">VI</span>
+        </button>
+
+        <button type="button" id="theme-toggle" class="btn btn--icon" aria-label="Toggle color theme" aria-pressed="false">
+          <span id="theme-icon" aria-hidden="true">◐</span>
+          <span id="theme-label">Auto</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <!-- Accuracy Legend -->
+    <section class="legend-bar" aria-label="Confidence badge legend">
+      <span class="legend-title" data-i18n="legendTitle">Accuracy Indicators:</span>
+      <span class="legend-item">
+        <span class="badge badge--exact" data-i18n="badgeExact">Exact</span>
+        <span data-i18n="legendExactDesc">Directly exposed by browser APIs</span>
+      </span>
+      <span class="legend-item">
+        <span class="badge badge--estimated" data-i18n="badgeEstimated">Estimated</span>
+        <span data-i18n="legendEstimatedDesc">Inferred via screen metrics, scaling, or UA heuristics</span>
+      </span>
+      <span class="legend-item">
+        <span class="badge badge--unavailable" data-i18n="badgeUnavailable">Unavailable</span>
+        <span data-i18n="legendUnavailableDesc">Restricted or unsupported in this browser</span>
+      </span>
+    </section>
+
+    <!-- Primary Diagnostic Cards Grid -->
+    <div class="cards-grid">
+      <!-- 1. DEVICE CARD -->
+      <section class="card" aria-labelledby="heading-device">
+        <header class="card-header">
+          <h2 id="heading-device" class="card-title" data-i18n="cardDeviceTitle">Device</h2>
+          <span class="card-tag" data-i18n="cardDeviceTag">Hardware &amp; Form Factor</span>
+        </header>
+        <div class="card-body">
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelDeviceType">Device Type</span>
+              <span class="badge badge--unavailable" data-badge="device-type">Unavailable</span>
+            </div>
+            <div class="metric-value" id="device-type">Detecting…</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelDeviceBrand">Brand / Vendor</span>
+              <span class="badge badge--unavailable" data-badge="device-brand">Unavailable</span>
+            </div>
+            <div class="metric-value" id="device-brand">Detecting…</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelDeviceModel">Model / Candidate Match</span>
+              <span class="badge badge--unavailable" data-badge="device-model">Unavailable</span>
+            </div>
+            <div class="metric-value" id="device-model">Detecting…</div>
+            <p class="metric-note" id="device-model-note" hidden></p>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelDeviceArch">CPU Architecture</span>
+              <span class="badge badge--unavailable" data-badge="device-arch">Unavailable</span>
+            </div>
+            <div class="metric-value" id="device-arch">Detecting…</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelDeviceBitness">CPU Bitness</span>
+              <span class="badge badge--unavailable" data-badge="device-bitness">Unavailable</span>
+            </div>
+            <div class="metric-value" id="device-bitness">Detecting…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. OPERATING SYSTEM CARD -->
+      <section class="card" aria-labelledby="heading-os">
+        <header class="card-header">
+          <h2 id="heading-os" class="card-title" data-i18n="cardOsTitle">Operating System</h2>
+          <span class="card-tag" data-i18n="cardOsTag">Platform Kernel &amp; Build</span>
+        </header>
+        <div class="card-body">
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelOsName">OS Name</span>
+              <span class="badge badge--unavailable" data-badge="os-name">Unavailable</span>
+            </div>
+            <div class="metric-value" id="os-name">Detecting…</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelOsVersion">OS Version</span>
+              <span class="badge badge--unavailable" data-badge="os-version">Unavailable</span>
+            </div>
+            <div class="metric-value" id="os-version">Detecting…</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelOsPlatform">Legacy Platform String</span>
+              <span class="badge badge--unavailable" data-badge="os-platform">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="os-platform">Detecting…</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelOsWow64">64-bit Windows Emulation (WoW64)</span>
+              <span class="badge badge--unavailable" data-badge="os-wow64">Unavailable</span>
+            </div>
+            <div class="metric-value" id="os-wow64">Detecting…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. BROWSER CARD -->
+      <section class="card" aria-labelledby="heading-browser">
+        <header class="card-header">
+          <h2 id="heading-browser" class="card-title" data-i18n="cardBrowserTitle">Browser</h2>
+          <span class="card-tag" data-i18n="cardBrowserTag">Engine &amp; Client Hints</span>
+        </header>
+        <div class="card-body">
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelBrowserName">Browser Name</span>
+              <span class="badge badge--unavailable" data-badge="browser-name">Unavailable</span>
+            </div>
+            <div class="metric-value" id="browser-name">Detecting…</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelBrowserVersion">Full Version</span>
+              <span class="badge badge--unavailable" data-badge="browser-version">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="browser-version">Detecting…</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelBrowserEngine">Rendering Engine</span>
+              <span class="badge badge--unavailable" data-badge="browser-engine">Unavailable</span>
+            </div>
+            <div class="metric-value" id="browser-engine">Detecting…</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelBrowserSource">Detection Source</span>
+              <span class="badge badge--unavailable" data-badge="browser-source">Unavailable</span>
+            </div>
+            <div class="metric-value" id="browser-source">Detecting…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. SCREEN RESOLUTION CARD -->
+      <section class="card" aria-labelledby="heading-screen">
+        <header class="card-header">
+          <h2 id="heading-screen" class="card-title" data-i18n="cardScreenTitle">Screen</h2>
+          <span class="card-tag live-pill" data-i18n="liveTag">Live</span>
+        </header>
+        <div class="card-body">
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelScreenCss">Logical Resolution (CSS Pixels)</span>
+              <span class="badge badge--unavailable" data-badge="screen-css">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="screen-css">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelScreenPhysical">Physical Resolution (CSS × DPR)</span>
+              <span class="badge badge--unavailable" data-badge="screen-physical">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="screen-physical">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelScreenStandard">Resolution Standard</span>
+              <span class="badge badge--unavailable" data-badge="screen-standard">Unavailable</span>
+            </div>
+            <div class="metric-value" id="screen-standard">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelScreenViewport">Viewport Size (innerWidth × innerHeight)</span>
+              <span class="badge badge--unavailable" data-badge="screen-viewport">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="screen-viewport">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelScreenAvail">Available Screen Area (excl. OS docks/bars)</span>
+              <span class="badge badge--unavailable" data-badge="screen-avail">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="screen-avail">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelScreenAspect">Aspect Ratio</span>
+              <span class="badge badge--unavailable" data-badge="screen-aspect">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="screen-aspect">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelScreenOrientation">Orientation</span>
+              <span class="badge badge--unavailable" data-badge="screen-orientation">Unavailable</span>
+            </div>
+            <div class="metric-value" id="screen-orientation">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. PIXEL DENSITY / DPI CARD -->
+      <section class="card" aria-labelledby="heading-dpi">
+        <header class="card-header">
+          <h2 id="heading-dpi" class="card-title" data-i18n="cardDpiTitle">Pixel Density</h2>
+          <span class="card-tag live-pill" data-i18n="liveTag">Live</span>
+        </header>
+        <div class="card-body">
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelDpiDpr">Device Pixel Ratio (DPR)</span>
+              <span class="badge badge--unavailable" data-badge="dpi-dpr">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="dpi-dpr">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelDpiCss">CSS Reference DPI (1in Probe)</span>
+              <span class="badge badge--unavailable" data-badge="dpi-css">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="dpi-css">—</div>
+            <p class="metric-note" data-i18n-html="cssDpiNote">
+              Measured via a hidden <code>1in</code> CSS element. By W3C specification, <code>1in</code> is fixed to
+              <strong>96 CSS pixels</strong> regardless of physical panel size—it reflects CSS scaling, not true hardware PPI.
+            </p>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelDpiPhysical">Estimated Physical PPI</span>
+              <span class="badge badge--unavailable" data-badge="dpi-physical">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="dpi-physical">Enter screen diagonal below</div>
+
+            <div class="ppi-calculator">
+              <label for="diagonal-input" class="ppi-label" data-i18n="diagonalLabel">Screen Diagonal (inches)</label>
+              <div class="ppi-input-group">
+                <input
+                  type="number"
+                  id="diagonal-input"
+                  class="input-field"
+                  min="1"
+                  max="200"
+                  step="0.1"
+                  inputmode="decimal"
+                  placeholder="e.g. 6.1, 14.0, 27.0"
+                  data-i18n-placeholder="diagonalPlaceholder"
+                  aria-describedby="ppi-formula-hint"
+                >
+                <button type="button" id="clear-diagonal-btn" class="btn btn--ghost" data-i18n="clearBtn">Clear</button>
+              </div>
+              <div class="preset-chips" id="preset-chips" role="group" aria-label="Common diagonal size presets">
+                <button type="button" class="chip" data-inches="6.1" data-i18n="chipPhone61">6.1″ Phone</button>
+                <button type="button" class="chip" data-inches="6.7" data-i18n="chipPhone67">6.7″ Phone</button>
+                <button type="button" class="chip" data-inches="11.0" data-i18n="chipTablet11">11″ Tablet</button>
+                <button type="button" class="chip" data-inches="13.3" data-i18n="chipLaptop13">13.3″ Laptop</button>
+                <button type="button" class="chip" data-inches="15.6" data-i18n="chipLaptop15">15.6″ Laptop</button>
+                <button type="button" class="chip" data-inches="27.0" data-i18n="chipMonitor27">27″ Monitor</button>
+              </div>
+              <p class="metric-note" id="ppi-formula-hint" data-i18n-html="ppiFormulaHint">
+                Formula: <code>√(physicalW² + physicalH²) / diagonalInches</code>
+              </p>
+            </div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelScreenDetails">Multi-Monitor Topology (Screen Details API)</span>
+              <span class="badge badge--unavailable" data-badge="screen-details">Unavailable</span>
+            </div>
+            <div class="metric-value" id="screen-details-status">Not queried yet</div>
+            <div class="screen-details-controls">
+              <button type="button" id="screen-details-btn" class="btn btn--secondary btn--sm" data-i18n="inspectDisplaysBtn">
+                Inspect Connected Displays
+              </button>
+            </div>
+            <ul class="monitor-list" id="monitor-list" hidden></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. EXTRA INFO CARD -->
+      <section class="card" aria-labelledby="heading-extra">
+        <header class="card-header">
+          <h2 id="heading-extra" class="card-title" data-i18n="cardExtraTitle">Extra Info</h2>
+          <span class="card-tag" data-i18n="cardExtraTag">Capabilities &amp; Preferences</span>
+        </header>
+        <div class="card-body">
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelExtraLanguage">Preferred Language(s)</span>
+              <span class="badge badge--unavailable" data-badge="extra-language">Unavailable</span>
+            </div>
+            <div class="metric-value" id="extra-language">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelExtraTimezone">Timezone</span>
+              <span class="badge badge--unavailable" data-badge="extra-timezone">Unavailable</span>
+            </div>
+            <div class="metric-value" id="extra-timezone">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelExtraCores">Logical CPU Cores (hardwareConcurrency)</span>
+              <span class="badge badge--unavailable" data-badge="extra-cores">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="extra-cores">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelExtraMemory">Device Memory (RAM)</span>
+              <span class="badge badge--unavailable" data-badge="extra-memory">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="extra-memory">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelExtraTouch">Max Touch Points</span>
+              <span class="badge badge--unavailable" data-badge="extra-touch">Unavailable</span>
+            </div>
+            <div class="metric-value metric-value--mono" id="extra-touch">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelExtraOnline">Network Online Status</span>
+              <span class="badge badge--unavailable" data-badge="extra-online">Unavailable</span>
+            </div>
+            <div class="metric-value" id="extra-online">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelExtraColorDepth">Color Depth &amp; Gamut</span>
+              <span class="badge badge--unavailable" data-badge="extra-color-depth">Unavailable</span>
+            </div>
+            <div class="metric-value" id="extra-color-depth">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelExtraColorScheme">System Color Scheme</span>
+              <span class="badge badge--unavailable" data-badge="extra-color-scheme">Unavailable</span>
+            </div>
+            <div class="metric-value" id="extra-color-scheme">—</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="labelExtraReducedMotion">Reduced Motion Preference</span>
+              <span class="badge badge--unavailable" data-badge="extra-reduced-motion">Unavailable</span>
+            </div>
+            <div class="metric-value" id="extra-reduced-motion">—</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Educational Privacy & Limitations Collapsible -->
+    <section class="privacy-section" aria-label="Browser privacy and detection limitations">
+      <details class="accordion">
+        <summary class="accordion-summary">
+          <span data-i18n="privacySummary">Why can't the browser tell me more?</span>
+          <span class="accordion-chevron" aria-hidden="true">▾</span>
+        </summary>
+        <div class="accordion-content">
+          <div class="privacy-grid">
+            <article class="privacy-item">
+              <h3 data-i18n="privacyItem1Title">1. User-Agent Reduction &amp; Freezing</h3>
+              <p data-i18n-html="privacyItem1Body">
+                Modern browsers intentionally freeze parts of <code>navigator.userAgent</code> to curb passive tracking.
+                For example, Safari locks macOS to <code>10_15_7</code> and omits iPhone/iPad model identifiers entirely,
+                while Chrome replaces detailed Android build/model tokens with a generic <code>K</code> unless high-entropy
+                Client Hints are requested over HTTPS.
+              </p>
+            </article>
+            <article class="privacy-item">
+              <h3 data-i18n="privacyItem2Title">2. Fingerprinting Protection &amp; Bucketing</h3>
+              <p data-i18n-html="privacyItem2Body">
+                Browsers like Firefox (with Enhanced Tracking Protection) and Brave spoof or coarsen high-entropy signals—such
+                as capping <code>navigator.deviceMemory</code> to 8 GB, rounding <code>hardwareConcurrency</code>, or reporting
+                a standardized viewport/timezone—so websites cannot uniquely identify your machine across sessions.
+              </p>
+            </article>
+            <article class="privacy-item">
+              <h3 data-i18n="privacyItem3Title">3. Physical Dimensions Are Hidden by Design</h3>
+              <p data-i18n-html="privacyItem3Body">
+                Web standards expose logical CSS pixels and <code>devicePixelRatio</code>, but never physical millimeter/inch
+                dimensions of your display panel. Without knowing the physical diagonal size (or querying the permission-gated
+                Screen Details API on multi-monitor desktop setups), true hardware PPI cannot be computed automatically.
+              </p>
+            </article>
+          </div>
+
+          <div class="raw-telemetry">
+            <h3 data-i18n="rawTelemetryTitle">Raw Browser Telemetry Snapshot</h3>
+            <pre id="raw-telemetry-output" class="code-block" tabindex="0">Loading telemetry…</pre>
+          </div>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="container">
+      <p data-i18n="footerText">100% client-side inspection — zero network requests, cookies, or analytics.</p>
+    </div>
+  </footer>
+
+  <!-- Accessible Live Toast Feedback -->
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>
